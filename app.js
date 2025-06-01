@@ -13,7 +13,8 @@ const port = 3000;
 app.use(express.json());
 app.use(cors());
 
-//RESGITRO-SIGN IN>>>>>>>>>>>>>>>>>>>
+//===============================MANAGERS===============================
+//RESGITRO-SIGN IN
 app.post("/register", async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password)
@@ -45,7 +46,7 @@ app.post("/register", async (req, res) => {
   }
 });
 
-//EDITAR GERENTE >>>>>>>>>>>>>>>>
+//EDITAR GERENTE =
 app.put("/managers/:id", authMiddleware, async (req, res) => {
   const { id } = req.params;
   const { username, password } = req.body;
@@ -89,7 +90,7 @@ app.put("/managers/:id", authMiddleware, async (req, res) => {
   }
 });
 
-//DELETAR GERENTE >>>>>>>>>>>>>>>>
+//DELETAR GERENTE
 app.delete("/managers/:id", authMiddleware, async (req, res) => {
   const { id } = req.params;
 
@@ -140,6 +141,7 @@ app.post("/login", async (req, res) => {
   }
 });
 
+//LOGOUT GERENTE
 app.post("/logout", authMiddleware, (req, res) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
@@ -149,7 +151,7 @@ app.post("/logout", authMiddleware, (req, res) => {
   res.json({ message: "Logout realizado com sucesso!" });
 });
 
-//LISTAR GERENTES>>>>>>>>>>>>>>>
+//LISTAR GERENTES
 app.get("/managers-list", authMiddleware, async (req, res) => {
   try {
     const [rows] = await pool.query("SELECT id, username FROM managers");
@@ -159,6 +161,8 @@ app.get("/managers-list", authMiddleware, async (req, res) => {
   }
 });
 
+//==============================EMPLOYEES==============================
+//LISTAR FUNCIONÁRIOS
 app.get("/get-employees", async (req, res) => {
   try {
     const [rows] = await pool.query("SELECT * FROM employees");
@@ -168,7 +172,8 @@ app.get("/get-employees", async (req, res) => {
   }
 });
 
-app.post("/new-employee", async (req, res) => {
+//REGISTRAR NOVO FUNCIONÁRIO
+app.post("/new-employee", authMiddleware, async (req, res) => {
   const { name, cpf, email, phone } = req.body;
   if (!name || !cpf || !email || !phone) {
     return res
@@ -183,6 +188,51 @@ app.post("/new-employee", async (req, res) => {
     res.status(201).json({ message: "Funcionário cadastrado com sucesso!" });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+//EDITAR DADOS DO FUNCIONÀRIO
+app.put("/employee/:id", authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  const { name, cpf, email, phone } = req.body;
+
+  if (!name || !cpf || !email || !phone) {
+    return res
+      .status(400)
+      .json({ message: "Todos os campos são obrigatórios." });
+  }
+
+  try {
+    const [rows] = await pool.query("SELECT * FROM employees WHERE id=?", [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Funcionário não encontrado." });
+    }
+
+    await pool.query(
+      "UPDATE employees SET name=?, cpf=?, email=?, phone=? WHERE id=?",
+      [name, cpf, email, phone, id]
+    );
+
+    res.json({ message: "Funcionário atualizado com sucesso!" });
+  } catch (err) {
+    res.status(500).json({ message: "Erro no servidor", error: err.message });
+  }
+});
+
+//EXCLUIR FUNCIONÁRIO
+app.delete("/employee/:id", authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [rows] = await pool.query("SELECT * FROM employees WHERE id=?", [id]);
+    if (id.length === 0) {
+      return res.status(404).json({ message: "Funcionário não encontrado!" });
+    }
+
+    await pool.query("DELETE FROM employees WHERE id=?", [id]);
+
+    res.status(200).json({ message: "Funcionário removido com sucesso!" });
+  } catch (err) {
+    res.status(500).json({ message: "Erro no servidor", error: err.message });
   }
 });
 
